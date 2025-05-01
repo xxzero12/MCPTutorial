@@ -22,9 +22,13 @@ Run below commands inside the mcpServer folder
 # Create virtual environment and activate it
 uv venv
 .venv\Scripts\activate
+# if you encounter error like activate.ps1 cannot be      
+loaded because running scripts is disabled on this system. For more information, see about_Execution_Policies, run below command
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 # Install dependencies
 uv add mcp[cli] httpx Pillow fastmcp
 ```
+
 
 ##### 4. Set up MCP server
 Open user setting by ctrl + shift + P
@@ -80,5 +84,7 @@ To debug mcp server
 Run below command
 ```
 uv run mcp dev main.py
+# if you see the error, npx not found. Please ensure Node.js and npm are properly installed and added to your system PATH.
+# then you need to install the latest nodejs https://nodejs.org/en/download
 ```
 ![MCP Inspector](mcpServer/images/mcpInspector.png)
