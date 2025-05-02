@@ -7,9 +7,11 @@ from io import BytesIO
 from fastmcp import FastMCP, Context, Image as MCPImage
 from fastmcp.prompts.prompt import UserMessage, AssistantMessage, Message
 import base64
+import logging
 
-# Initialize FastMCP server
-mcp = FastMCP("Tools")
+logging.basicConfig(level=logging.DEBUG)
+
+mcp = FastMCP(name="Tutorial")
 
 ############################## Tool ##############################
 # Constants
@@ -104,9 +106,9 @@ async def get_forecast(latitude: float, longitude: float, ctx: Context) -> str:
     return "\n---\n".join(forecasts)
 
 @mcp.tool()
-def create_thumbnail(image_path: str) -> Tuple[str, str]:
+def create_thumbnail(image_path: str) -> Tuple[bytes, str]:
     """
-    Create a 20×20 PNG thumbnail from the input image.
+    Create a 10×10 PNG thumbnail from the input image.
     
     This function takes a path to an existing image file, resizes it to a thumbnail
     while preserving the aspect ratio, and returns the image data in base64 encoding.
@@ -115,21 +117,22 @@ def create_thumbnail(image_path: str) -> Tuple[str, str]:
         image_path: Full path to the source image file to be thumbnailed
         
     Returns:
-        Tuple[str, str]: A tuple containing:
-          - The base64 encoded image data (can be used in HTML/CSS)
+        Tuple[bytes, str]: A tuple containing:
+          - The base64 encoded image data in bytes(can be used in HTML/CSS)
           - The MIME type of the image ("image/png")
     """
     img = PILImage.open(image_path)
-    img.thumbnail((20, 20))    
+    img.thumbnail((10, 10))    
     buffer = BytesIO()
     img.save(buffer, format="PNG")
     mime_type = f"image/png"
     
-    encoded_string = base64.b64encode(buffer.getvalue())
-    return encoded_string, mime_type
+    # Convert bytes to string for proper JSON serialization
+    encoded_bytes = base64.b64encode(buffer.getvalue())
+    return encoded_bytes, mime_type
 
 @mcp.tool()
-def save_thumbnail(image_path: str, image_bytes_base64: str) -> str:
+def save_thumbnail(image_path: str, image_bytes_base64: bytes) -> str:
     """
     Save the thumbnail locally given base64-encoded PNG data to the path.
     
@@ -144,15 +147,28 @@ def save_thumbnail(image_path: str, image_bytes_base64: str) -> str:
     Returns:
         str: A confirmation message indicating where the thumbnail was saved
     """
-    # Decode base64 string to bytes
-    image_bytes = base64.b64decode(image_bytes_base64)
-    
-    # Load from bytes
-    img = PILImage.open(BytesIO(image_bytes))
-    # Write thumbnail back to disk
-    output_path = image_path
-    img.save(output_path, format="PNG")
-    return f"Saved thumbnail to {output_path}"
+    try:
+        # Ensure directory exists
+        output_dir = os.path.dirname(image_path)
+        if output_dir and not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+        
+        # Decode the base64 data first
+        decoded_bytes = base64.b64decode(image_bytes_base64)
+        
+        # Load from decoded bytes
+        with BytesIO(decoded_bytes) as buffer:
+            img = PILImage.open(buffer)
+            # Write thumbnail back to disk
+            output_path = image_path
+            img.save(output_path, format="PNG")
+            return f"Saved thumbnail to {output_path}"
+    except base64.binascii.Error as e:
+        return f"Base64 decoding error: {str(e)}"
+    except IOError as e:
+        return f"Error saving image: {str(e)}"
+    except Exception as e:
+        return f"Unexpected error processing thumbnail: {str(e)}"
 
 # LLM Sampling
 # Sampling is an MCP feature that allows a server to request a completion from the client LLM, enabling sophisticated use cases while maintaining security and privacy on the server.
@@ -344,7 +360,6 @@ def get_image(image_name: str) -> Tuple[str, str]:
     # Return the image data with the appropriate MIME type
     return encoded_string, mime_type
 
-
 ############################## Prompt ##############################
 @mcp.prompt()
 def ask_review(code_snippet: str) -> str:
@@ -360,5 +375,10 @@ def debug_session_start(error_message: str) -> list[Message]:
     ]
 
 if __name__ == "__main__":
-    # Initialize and run the server
-    mcp.run(transport='stdio')
+    # This code only runs when the file is executed directly
+    
+    # Basic run with default settings (stdio transport)
+    # mcp.run()
+
+    # Or with specific transport and parameters
+    mcp.run(transport="sse", host="127.0.0.1", port=9000)
