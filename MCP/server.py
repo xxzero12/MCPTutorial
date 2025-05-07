@@ -4,14 +4,25 @@ from pathlib import Path
 import httpx
 from PIL import Image as PILImage
 from io import BytesIO
+from mcp.types import PromptMessage
 from fastmcp import FastMCP, Context, Image as MCPImage
-from fastmcp.prompts.prompt import UserMessage, AssistantMessage, Message
+from fastmcp.prompts.prompt import Message, TextContent
 import base64
 import logging
 
-logging.basicConfig(level=logging.DEBUG)
 
-mcp = FastMCP(name="Tutorial")
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+logging.basicConfig(level=logging.DEBUG)
+mcp = FastMCP(name="Tutorial Server")
 
 ############################## Tool ##############################
 # Constants
@@ -71,11 +82,10 @@ async def get_forecast(latitude: float, longitude: float, ctx: Context) -> str:
         latitude: Latitude of the location
         longitude: Longitude of the location
     """
-    await ctx.info(f"Processing coordinates: {latitude}, {longitude}")
-    await ctx.debug("Debug info")
-    await ctx.warning("Warning message")
-    await ctx.error("Error message")
-    await ctx.report_progress(0, 100)
+    # roots = await ctx.list_roots()
+    # await ctx.info(f"{bcolors.HEADER}{roots}")
+    await ctx.info(f"{bcolors.OKGREEN}Info Message: Processing coordinates: {latitude}, {longitude}")
+    # await ctx.report_progress(0, 100)
     # First get the forecast grid endpoint
     points_url = f"{NWS_API_BASE}/points/{latitude},{longitude}"
     points_data = await make_nws_request(points_url)
@@ -180,10 +190,14 @@ def save_thumbnail(image_path: str, image_bytes_base64: bytes) -> str:
 @mcp.tool()
 async def generate_poem(topic: str, context: Context) -> str:
     """Generate a short poem about the given topic."""
+    request_id = context.request_id
+    await context.info(f"[{request_id}] Starting processing for {topic}")
     # The server requests a completion from the client LLM
     response = await context.sample(
-        f"Write a short poem about {topic}",
-        system_prompt="You are a talented poet who writes concise, evocative verses."
+        messages=f"Write a short poem about {topic}",
+        system_prompt="You are a talented poet who writes concise, evocative verses.",
+        temperature=0.7,
+        max_tokens=300
     )
     return response.text
 
@@ -266,9 +280,8 @@ def get_greeting_message() -> str:
     return "Welcome to the MCP Tutorial Server!"
 
 # Register a static mcp resource
-@mcp.resource("mcp://overview")
+@mcp.resource("mcp://overview", description="Overview of the Model Context Protocol")
 def get_greeting_message() -> str:
-    """Static overview info about MCP"""
     return """"Model Context Protocol
 The Model Context Protocol is an open standard that enables developers to build secure, two-way connections between their data sources and AI-powered tools. The architecture is straightforward: developers can either expose their data through MCP servers or build AI applications (MCP clients) that connect to these servers.
 
@@ -362,23 +375,18 @@ def get_image(image_name: str) -> Tuple[str, str]:
 
 ############################## Prompt ##############################
 @mcp.prompt()
-def ask_review(code_snippet: str) -> str:
-    """Generates a standard code review request."""
-    return f"Please review the following code snippet for potential bugs and style issues:\n```python\n{code_snippet}\n```"
-
-@mcp.prompt()
-def debug_session_start(error_message: str) -> list[Message]:
+def debug_session_start(error_message: str) -> list[PromptMessage]:
     """Initiates a debugging help session."""
     return [
-        UserMessage(f"I encountered an error:\n{error_message}"),
-        AssistantMessage("Okay, I can help with that. Can you provide the full traceback and tell me what you were trying to do?")
+        PromptMessage(role="user", content=TextContent(type="text", text=f"I encountered an error:\n{error_message}, please help me to debug it.")),
+        PromptMessage(role="assistant", content=TextContent(type="text", text="Okay, I can help with that. Let me look into the error message you provided and list what's the possible way to fix it."))
     ]
 
 if __name__ == "__main__":
     # This code only runs when the file is executed directly
     
-    # Basic run with default settings (stdio transport)
+    # Local STDIO
     # mcp.run()
 
-    # Or with specific transport and parameters
+    # SSE
     mcp.run(transport="sse", host="127.0.0.1", port=9000)
