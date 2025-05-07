@@ -26,9 +26,11 @@ uv venv
 loaded because running scripts is disabled on this system. For more information, see about_Execution_Policies, run below command
 Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 # Install dependencies
-uv add mcp[cli] httpx Pillow fastmcp openai
+uv add mcp[cli] httpx Pillow fastmcp openai azure.identity
 # You may need to update to latest MCP version
 uv pip install --upgrade fastmcp
+# You can run the server stand alone in terminal by below command
+uv run python server.py
 ```
 
 
@@ -90,3 +92,16 @@ uv run mcp dev main.py
 # then you need to install the latest nodejs https://nodejs.org/en/download
 ```
 ![MCP Inspector](MCP/images/mcpInspector.png)
+
+
+To use the MCP Client
+Please make sure you are added in the security group(is adding right now, pine lipan if not able to run)
+Then type 
+```
+az login
+```
+
+Then run the 
+```
+uv run python client.py
+```

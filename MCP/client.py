@@ -11,6 +11,7 @@ from fastmcp.client.sampling import (
 from fastmcp.client.logging import LogMessage
 from mcp.shared.session import RequestResponder
 from pprint import pprint
+from azure.identity import DefaultAzureCredential, get_bearer_token_provider  
 
 class bcolors:
     HEADER = '\033[95m'
@@ -23,9 +24,16 @@ class bcolors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
+# Initialize Azure OpenAI client with Entra ID authentication
+token_provider = get_bearer_token_provider(  
+    DefaultAzureCredential(),  
+    "https://cognitiveservices.azure.com/.default"  
+)  
+
 MODEL_NAME = "gpt-35-turbo"  # Change this to your desired model name
 openai_client = AzureOpenAI(  
-    azure_endpoint="https://lipan-azure-openai.openai.azure.com/openai/deployments/gpt-35-turbo/chat/completions?api-version=2025-01-01-preview",
+    azure_endpoint="https://mcp-azure-openai.openai.azure.com/",
+    azure_ad_token_provider=token_provider,  
     api_version="2025-01-01-preview",
 )
 
