@@ -22,13 +22,17 @@ Run below commands inside the MCP folder
 # Create virtual environment and activate it
 uv venv
 .venv\Scripts\activate
+
 # if you encounter error like activate.ps1 cannot be      
 loaded because running scripts is disabled on this system. For more information, see about_Execution_Policies, run below command
 Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+
 # Install dependencies
 uv add mcp[cli] httpx Pillow fastmcp openai azure.identity
+
 # You may need to update to latest MCP version
 uv pip install --upgrade fastmcp
+
 # You can run the server stand alone in terminal by below command
 uv run python server.py
 ```
@@ -42,6 +46,7 @@ Open user setting by ctrl + shift + P
 Paste below to replace
 Change the filepath to the local absolute path for the main.py
 type open user setting json and paste below
+For local
 ```
 {
     "mcp": {
@@ -66,6 +71,8 @@ type open user setting json and paste below
     }
 }
 ```
+For SSE
+
 
 ##### 4. Run MCP server
 click start and it will start running
@@ -94,12 +101,21 @@ uv run mcp dev main.py
 ![MCP Inspector](MCP/images/mcpInspector.png)
 
 
-To use the MCP Client
-Please make sure you are added in the security group(is adding right now, pine lipan if not able to run)
-Then type 
+##### 5. Run MCP client
+To run the MCP Client
+Please make sure you are added in the security group(is adding all people currently)
+Then type below command to log into azure first
 ```
-az login
+az account set --subscription "fe105136-f441-4214-8a12-1d1f4955e15f"
+az login 
+then press enter to continue
 ```
+
+Need to change below for different protocol testing
+For local
+
+
+For SSE
 
 Then run the 
 ```
