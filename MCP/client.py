@@ -25,7 +25,7 @@ class bcolors:
 
 MODEL_NAME = "gpt-35-turbo"  # Change this to your desired model name
 openai_client = AzureOpenAI(  
-    azure_endpoint="https://lipan-azure-openai.openai.azure.com/openai/deployments/gpt-35-turbo/chat/completions?api-version=2025-01-01-preview",  
+    azure_endpoint="https://lipan-azure-openai.openai.azure.com/openai/deployments/gpt-35-turbo/chat/completions?api-version=2025-01-01-preview",
     api_version="2025-01-01-preview",
 )
 
