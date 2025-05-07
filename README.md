@@ -72,7 +72,18 @@ For local
 }
 ```
 For SSE
-
+```
+{
+    "mcp": {
+        "servers": {
+            "mcpTest": {
+                "type": "sse",
+                "url": "http://localhost:9000/sse"
+            }
+        }
+    }
+}
+```
 
 ##### 4. Run MCP server
 click start and it will start running
@@ -111,11 +122,30 @@ az login
 then press enter to continue
 ```
 
-Need to change below for different protocol testing
-For local
+Need to change below for different protocol testing in client.py
+```
+# Create MCP client
 
+# Local STDIO
+client = Client(
+    "server.py", 
+    sampling_handler=sampling_handler, 
+    log_handler=log_handler,
+    roots=[
+        "file://home/projects/roots-example/frontend"
+    ],
+    message_handler=message_handler)
 
-For SSE
+# SSE
+client = Client(
+    "http://localhost:9000/sse", 
+    sampling_handler=sampling_handler, 
+    log_handler=log_handler,
+    roots=[
+        "file://home/projects/roots-example/frontend"
+    ],
+    message_handler=message_handler)
+```
 
 Then run the 
 ```
