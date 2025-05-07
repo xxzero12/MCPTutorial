@@ -167,62 +167,7 @@ async def get_system_message(client):
         """
     return system_instruction
 
-async def generate_response_with_function_calling(prompt, system_instruction=None, conversation=None, tools=None):
-    """Generate a response from Azure OpenAI with function calling capability."""
-    # Default system instruction if none provided
-    if not system_instruction:
-        system_instruction = "You are a helpful assistant. You can answer questions and use tools when necessary."
-    
-    # Format messages for the API call
-    formatted_messages = [
-        {"role": "system", "content": system_instruction}
-    ]
-    
-    # Add conversation history if provided
-    if conversation:
-        formatted_messages.extend(conversation)
-    
-    # Add the user's prompt as the last message
-    formatted_messages.append({"role": "user", "content": prompt})
-    
-    try:
-        # Generate the completion  
-        completion = openai_client.chat.completions.create(  
-            model=MODEL_NAME,
-            messages=formatted_messages,
-            max_tokens=800,  
-            temperature=0.7,  
-            top_p=0.95,  
-            frequency_penalty=0,  
-            presence_penalty=0,
-            stop=None,  
-            stream=False,
-            tools=tools if tools else None,  # Pass tools if provided
-            tool_choice="auto"
-        )
-
-        return completion
-    
-    except Exception as e:
-        print(f"\nError calling Azure OpenAI API: {str(e)}")
-        return None
-
-# Execute the tool call and return the result
-async def execute_tool_call(tool_call):
-    """Execute a tool call against the MCP server."""
-    try:
-        # Parse the function arguments from JSON
-        args = json.loads(tool_call.function.arguments)
-        
-        # Call the MCP tool with the parsed arguments
-        result = await client.call_tool(tool_call.function.name, args)
-        
-        return result
-    except Exception as e:
-        return f"Error executing tool {tool_call.function.name}: {str(e)}"
-
 async def chat_loop():
-    # WORKING IN PROGRESS
     """Interactive chat loop with Azure OpenAI function calling for MCP tools."""
     print("Welcome to the Azure OpenAI Chat with MCP Tools! Type 'exit' to quit.")
     print("Ensure you have set the following values:")
@@ -233,102 +178,67 @@ async def chat_loop():
     # Connect to MCP server
     async with client:
         print(f"MCP Client connected: {client.is_connected()}")
-        
+        system_message = await get_system_message(client)
+        conversation = []
+        conversation = [{"role": "system", "content": system_message}]
+
         # Get tool schemas for function calling
         openAI_tool_schemas = await get_openAI_tool_schema()
-        print(f"Loaded {len(openAI_tool_schemas)} tools from MCP server")
-        
-        # Store conversation history
-        conversation = []
-        
-        # Set up system instructions
-        system_instruction = await get_system_message(client)
         # Main chat loop
         while True:
             try:
                 # Get user input
-                user_prompt = input("\nType the question: ")
+                user_prompt = input("\nType the question:\n\n\n")
                 
                 if user_prompt.lower() in ["exit", "quit", "bye"]:
-                    print("Goodbye!")
+                    print("Goodbye!\n\n\n")
                     break
                 
-                print("\nProcessing with Azure OpenAI...")
-                
-                # Add user message to conversation history
                 conversation.append({"role": "user", "content": user_prompt})
-                
-                # Call Azure OpenAI with function calling
-                response = await generate_response_with_function_calling(
-                    user_prompt, 
-                    system_instruction=system_instruction, 
-                    conversation=conversation[:-1] if len(conversation) > 1 else None,
-                    tools=openAI_tool_schemas
+
+                response = openai_client.chat.completions.create(  
+                    model=MODEL_NAME,
+                    messages=conversation,
+                    max_tokens=800,  
+                    temperature=0.7,  
+                    top_p=0.95,  
+                    frequency_penalty=0,  
+                    presence_penalty=0,
+                    stop=None,  
+                    stream=False,
+                    tools=openAI_tool_schemas,
+                    tool_choice="auto"
                 )
-                
-                if not response:
-                    print("\nFailed to get a response from Azure OpenAI.")
-                    continue
-                
-                # Get the message from the response
-                message = response.choices[0].message
-                
-                # Check if the model wants to call a function
-                if message.tool_calls:
-                    print("\nAI is using tools to answer your question...")
-                    
-                    # Execute each tool call
-                    for tool_call in message.tool_calls:
-                        print(f"Using tool: {tool_call.function.name}")
-                    
-                        # Execute the tool call
-                        tool_result = await execute_tool_call(tool_call)
-                    
-                        # Add the tool call and result to the conversation
+
+                print(response.to_json(indent=2) + "\n\n\n")
+
+                response_message = response.choices[0].message
+                conversation.append(response_message)
+
+                if response_message.tool_calls:
+                    for tool_call in response_message.tool_calls:
+                        function_name = tool_call.function.name
+                        function_args = json.loads(tool_call.function.arguments)
+                        print(f"Function call: {function_name}\n\n\n")  
+                        print(f"Function arguments: {function_args}\n\n\n")  
+                        
+                        # Execute the tool call using the MCP client
+                        tool_result = await client.call_tool(function_name, function_args)
+                        print(f"Tool result: {tool_result}\n\n\n")
+                        
                         conversation.append({
-                            "role": "assistant",
-                            "content": None,
-                            "tool_calls": [{
-                                "id": tool_call.id,
-                                "type": "function",
-                                "function": {
-                                    "name": tool_call.function.name,
-                                    "arguments": tool_call.function.arguments
-                                }
-                            }]
-                        })
-                    
-                        conversation.append({
-                            "role": "tool",
                             "tool_call_id": tool_call.id,
-                            "content": str(tool_result)
+                            "role": "tool",
+                            "name": function_name,
+                            "content": tool_result,
                         })
-                    
-                    # Get a new response from the model with the tool results
-                    print("Getting final response with tool results...")
-                    final_response = await generate_response_with_function_calling(
-                        user_prompt,
-                        system_instruction=system_instruction,
-                        conversation=conversation,
-                        tools=openAI_tool_schemas
-                    )
-                    
-                    if not final_response:
-                        print("\nFailed to get a final response from Azure OpenAI.")
-                        continue
-                    
-                    final_message = final_response.choices[0].message
-                    print(f"\nAI: {final_message.content}")
-                    
-                    # Add the final response to conversation history
-                    conversation.append({"role": "assistant", "content": final_message.content})
                 else:
                     # Just show the AI response if no tool calls
-                    print(f"\nAI: {message.content}")
+                    print(f"Final Response: {response_message.content}\n\n\n")
                     
                     # Add assistant response to conversation history
-                    conversation.append({"role": "assistant", "content": message.content})
-            
+                    conversation.append({"role": "assistant", "content": response_message.content})
+                   
             except KeyboardInterrupt:
                 print("\nChat session terminated.")
                 break
