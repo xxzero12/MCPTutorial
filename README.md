@@ -161,3 +161,32 @@ Then run the
 ```
 uv run python client.py
 ```
+
+
+
+To run the demo
+You will need 
+# 1 Set SSE Mode
+Set both client and server in SSE mode
+client
+![alt text](MCP/images/sseClient.png)
+server
+![alt text](MCP/images/sseServer.png)
+
+Then run server first
+```
+uv run python server.py
+```
+# 2 Two client mode
+You can run below for interactive chat mode and see the message exchanged(make sure to be added in the openai group to get api call permission, I added all people in the chat, but ping lipan if see unauthorized)
+```
+uv run python client.py chat 
+```
+![alt text](MCP/images/chat.png)
+
+
+or you can comment out one section by one section and see whats the demo in the code
+```
+uv run python client.py 
+```
+

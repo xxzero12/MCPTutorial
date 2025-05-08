@@ -179,7 +179,6 @@ async def chat_loop():
     """Interactive chat loop with Azure OpenAI function calling for MCP tools."""
     print("Welcome to the Azure OpenAI Chat with MCP Tools! Type 'exit' to quit.")
     print("Ensure you have set the following values:")
-    print("- AZURE_OPENAI_API_KEY")
     print("- AZURE_OPENAI_ENDPOINT")
     print("- AZURE_OPENAI_DEPLOYMENT_NAME")
     
@@ -196,7 +195,7 @@ async def chat_loop():
         while True:
             try:
                 # Get user input
-                user_prompt = input("\nType the question:\n\n\n")
+                user_prompt = input(f"\n{bcolors.OKGREEN}Type the question:{bcolors.ENDC}\n\n\n")
                 
                 if user_prompt.lower() in ["exit", "quit", "bye"]:
                     print("Goodbye!\n\n\n")
@@ -259,7 +258,7 @@ async def main():
     async with client:
         print(f"{bcolors.OKGREEN}Client connected: {client.is_connected()}{bcolors.ENDC}\n\n\n")
 
-        # # Demo usage of the MCP client tools
+        # # Demo: usage of the MCP client tools
         # tools = await client.list_tools()
         # resource = await client.list_resources()
         # prompts = await client.list_prompts()
@@ -268,8 +267,9 @@ async def main():
         # print(f"Available prompts: {pprint(prompts)}\n\n\n")
         # await client.call_tool("get_forecast",{ "latitude": 47.6101, "longitude": -122.2015 })
 
-        # # Demo how LLM communicate with MCP Client
+        # # Demo: how LLM communicate with MCP Client
         # # Option 1: Send tool information in big system prompt to let LLM know what tools are available
+        # tools = await client.list_tools()
         # tool_schemas = "\n".join([f"- {tool.name}, {tool.description}, {tool.inputSchema} " for tool in tools])
         # system_instruction = f"""
         #     You are a helpful assistant with access to these tools:\n\n
@@ -343,7 +343,7 @@ async def main():
         # response_message = response.choices[0].message
         # pprint(f"Final response:{response_message.content}\n\n\n")
        
-        # # Option 2: Use OpenAI function calling to let LLM know what tools are available
+        # # Demo: Option 2: Use OpenAI function calling to let LLM know what tools are available
         # # Set up system instructions
         # tools = await client.list_tools()
         # resources = await client.list_resources()
