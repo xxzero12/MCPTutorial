@@ -46,7 +46,11 @@ Open user setting by ctrl + shift + P
 Paste below to replace
 Change the filepath to the local absolute path for the main.py
 type open user setting json and paste below
-For local
+For local, change the server.py code in main
+```
+mcp.run()
+```
+then change the open user setting to below
 ```
 {
     "mcp": {
@@ -72,6 +76,12 @@ For local
 }
 ```
 For SSE
+change server code in server.py on main to
+```
+mcp.run(transport="sse", host="127.0.0.1", port=9000)
+```
+
+and change open user setting to below
 ```
 {
     "mcp": {
